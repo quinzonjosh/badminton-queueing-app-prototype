@@ -306,8 +306,7 @@
                 }
 
                 // Cancel sits first in a row, last in a stack
-                actionsEl.replaceChildren(...(stacked ? [...buttons, cancelBtn] : [cancelBtn, ...buttons]).filter(Boolean));
-                root.hidden = false;
+                actionsEl.replaceChildren(...(stacked ? [...buttons, cancelBtn] : [...buttons, cancelBtn]).filter(Boolean));                root.hidden = false;
                 document.body.classList.add('prompt-open');
                 (cancelBtn ?? buttons[0])?.focus(); // focus the safe choice first
             });
