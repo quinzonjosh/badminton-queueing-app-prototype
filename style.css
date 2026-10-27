@@ -1202,3 +1202,41 @@ ANIMATIONS
 .player.sel-a, .player.sel-b {
   animation: pulseSelect 0.2s ease-out;
 }
+
+/* ===== Player Discount Modal ===== */
+.discount-form {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  text-align: left;
+}
+.discount-field {
+  display: grid;
+  gap: 6px;
+}
+.discount-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.discount-field select,
+.discount-field input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+.discount-field select:focus,
+.discount-field input:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.discount-actions {
+  margin-top: 12px;
+}
