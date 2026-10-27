@@ -485,7 +485,6 @@
         return entries;
     }
 
-
     function extractNumberedRoster(text) {
         const lines = text.split(/\r?\n/);
         const roster = [];
@@ -1571,8 +1570,9 @@
         const emptyEl = document.getElementById('payments-empty');
 
         const toAmount = input => Math.max(0, parseFloat(input.value) || 0);
-        // a paid player keeps the fee they paid; everyone else uses the current fee
-        const feeOf = p => (p.payment ? p.payment.amount : state.fees.perPlayer);
+        
+        // 1. A paid player keeps the fee they paid; everyone else uses base fee minus their discount
+        const feeOf = p => (p.payment ? p.payment.amount : Math.max(0, state.fees.perPlayer - (p.discount ?? 0)));
 
         // Don't overwrite an input while the user is typing in it
         function syncInput(input, value) {
@@ -1598,7 +1598,11 @@
         function buildRow(p) {
             const tr = document.createElement('tr');
             tr.dataset.id = p.id;
-            tr.append(cell(p.name), cell(p.games ?? 0, 'num'), cell(money(feeOf(p)), 'num'));
+            
+            // Display name, games, and net court fee (with discount applied)
+            const displayFee = feeOf(p);
+            const feeText = p.discount ? `${money(displayFee)} (disc. ${money(p.discount)})` : money(displayFee);
+            tr.append(cell(p.name), cell(p.games ?? 0, 'num'), cell(feeText, 'num'));
 
             const actions = document.createElement('div');
             actions.className = 'pay-actions';
@@ -1628,7 +1632,11 @@
             } = state.fees;
             const paid = state.players.filter(p => p.payment);
             const collected = round2(paid.reduce((sum, p) => sum + p.payment.amount, 0));
-            const outstanding = round2((state.players.length - paid.length) * perPlayer);
+            
+            // 2. Outstanding calculation sums up individual discounted fees for unpaid players
+            const unpaid = state.players.filter(p => !p.payment);
+            const outstanding = round2(unpaid.reduce((sum, p) => sum + Math.max(0, perPlayer - (p.discount ?? 0)), 0));
+            
             const net = round2(collected - expenses);
 
             syncInput(feeInput, perPlayer);
@@ -1644,7 +1652,7 @@
             wrap.hidden = state.players.length === 0;
         }
 
-        // Fee + expenses save as you type; on blur the box is tidied (e.g. "-5" or "007")
+        // Fee + expenses save as you type; on blur the box is tidied
         feeInput.addEventListener('input', () => {
             state.fees.perPlayer = toAmount(feeInput);
             commit();
@@ -1656,6 +1664,20 @@
         feeInput.addEventListener('blur', render);
         expensesInput.addEventListener('blur', render);
 
+        const discountBtn = document.getElementById('discount-btn');
+
+        discountBtn.addEventListener('click', async () => {
+            if (!state.players.length) return;
+            const result = await openDiscountModal(state.players);
+            if (!result) return;
+
+            const player = playerById(result.playerId);
+            if (!player) return;
+
+            player.discount = result.amount;
+            commit();
+        });
+
         // Paid -> choose cash or digital. Rollback -> confirm, then mark unpaid again.
         body.addEventListener('click', async e => {
             const btn = e.target.closest('[data-action]');
@@ -1665,10 +1687,14 @@
             if (!player) return;
 
             if (btn.dataset.action === 'pay') {
-                const fee = state.fees.perPlayer;
+                // 3. Record payment using the player's discounted fee amount
+                const baseFee = state.fees.perPlayer;
+                const discount = player.discount ?? 0;
+                const fee = Math.max(0, baseFee - discount);
+
                 const method = await ask({
                     title: 'Record payment',
-                    text: `${player.name} · ${money(fee)}. How was it paid?`,
+                    text: `${player.name} · ${money(fee)}. Select payment method:`,
                     cancelLabel: 'Back',
                     choices: [{
                             label: '💵 Cash',
@@ -1708,6 +1734,108 @@
 
         onChange(render);
         render();
+    }
+
+    function openDiscountModal(players) {
+      const root = document.getElementById('prompt');
+      const box = root.querySelector('.prompt');
+      const iconEl = document.getElementById('prompt-icon');
+      const titleEl = document.getElementById('prompt-title');
+      const textEl = document.getElementById('prompt-text');
+      const noteEl = document.getElementById('prompt-note');
+      const actionsEl = document.getElementById('prompt-actions');
+
+      return new Promise(resolve => {
+        let selectedPlayerId = players[0]?.id || '';
+        let discountAmount = '';
+
+        function renderModal(errorMsg = '') {
+          titleEl.textContent = '🏷️ Set Player Discount';
+          iconEl.hidden = true;
+          box.classList.remove('has-icon');
+          noteEl.hidden = true;
+
+          const formDiv = document.createElement('div');
+          formDiv.className = 'discount-form';
+
+          // Player Dropdown
+          const playerField = document.createElement('div');
+          playerField.className = 'discount-field';
+          const playerLabel = document.createElement('label');
+          playerLabel.textContent = 'Select player';
+          const select = document.createElement('select');
+          players.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            if (p.id === selectedPlayerId) opt.selected = true;
+            select.append(opt);
+          });
+          select.onchange = e => { selectedPlayerId = e.target.value; };
+          playerField.append(playerLabel, select);
+
+          // Amount Input
+          const amountField = document.createElement('div');
+          amountField.className = 'discount-field';
+          const amountLabel = document.createElement('label');
+          amountLabel.textContent = 'Discount amount (₱)';
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.inputMode = 'decimal';
+          input.min = '0';
+          input.step = 'any';
+          input.placeholder = '0';
+          input.value = discountAmount;
+          input.oninput = e => { discountAmount = e.target.value; };
+          amountField.append(amountLabel, input);
+
+          formDiv.append(playerField, amountField);
+
+          if (errorMsg) {
+            const errP = document.createElement('p');
+            errP.className = 'form-error';
+            errP.style.margin = '0';
+            errP.textContent = errorMsg;
+            formDiv.append(errP);
+          }
+
+          textEl.replaceChildren(formDiv);
+          textEl.hidden = false;
+
+          // Buttons
+          const confirmBtn = document.createElement('button');
+          confirmBtn.type = 'button';
+          confirmBtn.className = 'btn btn-primary';
+          confirmBtn.textContent = 'Apply discount';
+          confirmBtn.onclick = () => {
+            const amt = parseFloat(discountAmount);
+            if (isNaN(amt) || amt < 0) {
+              renderModal('Please enter a valid discount amount.');
+              return;
+            }
+            closeModal({ playerId: selectedPlayerId, amount: amt });
+          };
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'btn';
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.onclick = () => closeModal(null);
+
+          actionsEl.className = 'prompt-actions row';
+          actionsEl.replaceChildren(cancelBtn, confirmBtn);
+        }
+
+        function closeModal(result) {
+          root.hidden = true;
+          document.body.classList.remove('prompt-open');
+          resolve(result);
+        }
+
+        renderModal();
+        root.hidden = false;
+        document.body.classList.add('prompt-open');
+      });
     }
 
     // =====================================================================
