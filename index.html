@@ -8,10 +8,9 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 
-<body>
+<body onload="if(!window.location.hash) window.location.hash='#q-sessions';">
 
     <main>
-        <!-- Q-Sessions (Includes Players, Queue, and Courts tabs) -->
         <section class="view" data-view="q-sessions">
             <div class="tabs" role="tablist" aria-label="Q-Session sections">
                 <button class="tab" role="tab" id="tab-players" aria-controls="panel-players" aria-selected="true">Players</button>
@@ -220,7 +219,7 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Main navigation">
-        <a href="#q-sessions" class="nav-item"><span class="icon">📋</span><span>Q-Sessions</span></a>
+        <a href="#q-sessions" class="nav-item"><span class="icon">📋</span><span>Main</span></a>
         <a href="#rankings" class="nav-item"><span class="icon">🏆</span><span>Rankings</span></a>
         <a href="#payments" class="nav-item"><span class="icon">💳</span><span>Payments</span></a>
     </nav>
