@@ -18,9 +18,9 @@
         intermediate: 'Intermediate',
         advanced: 'Advanced'
     };
+    const LONG_WAIT_MS = 15 * 60 * 1000; 
 
-    // players: [{ id, name, level, games, wins, losses, draws, payment, addedAt }]
-    // payment: null | { method: 'cash' | 'digital', amount, paidAt }
+    // players: [{ id, name, level, games, wins, losses, draws, payment, addedAt, waitingSince }]    // payment: null | { method: 'cash' | 'digital', amount, paidAt }
     // session.matches (the queue): [{ id, no, a: [id, id], b: [id, id], createdAt }]
     // courts: [{ number, match: null | { id, no, a, b, startedAt } }]
     // history: [{ id, no, court, startedAt, endedAt, a: [names], b: [names], result: 'a' | 'b' | 'draw' }]
@@ -59,14 +59,17 @@
         losses: 0,
         draws: 0,
         payment: null,
-        addedAt: Date.now()
+        addedAt: Date.now(),
+        waitingSince: state.session.started ? Date.now() : null
     });
+
     const resetSessionData = p => {
         p.games = 0;
         p.wins = 0;
         p.losses = 0;
         p.draws = 0;
         p.payment = null;
+        p.waitingSince = null;
     };
 
     const onChange = fn => listeners.push(fn);
@@ -78,6 +81,25 @@
         minute: '2-digit'
     });
     const round2 = n => Math.round(n * 100) / 100;
+
+
+    // 75000 -> "01:15", 3725000 -> "1:02:05"
+    function formatDuration(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        const pad = n => String(n).padStart(2, '0');
+        return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    }
+
+    // A .wait-time element carries data-since (a timestamp). This fills in its text
+    // and turns the parent .wait chip amber once the wait gets long.
+    function setWaitText(el) {
+        const ms = Date.now() - Number(el.dataset.since);
+        el.textContent = formatDuration(ms);
+        el.parentElement.classList.toggle('long', ms >= LONG_WAIT_MS);
+    }
 
     function money(n) {
         const text = Math.abs(n).toLocaleString(undefined, {
@@ -110,6 +132,10 @@
                 counter: saved.counter ?? matches.length
             };
         }
+
+        state.players.forEach(p => {
+            p.waitingSince ??= state.session.started ? Date.now() : null;
+        });
 
         const courts = loadJSON(COURTS_KEY, null);
         state.courts = Array.isArray(courts) ?
@@ -169,21 +195,38 @@
         return li;
     }
 
-    // Same, plus the skill badge
-    function buildPlayerLi(player) {
+    // Same, plus the skill badge (and optionally the live wait time)
+    function buildPlayerLi(player, { showWait = false } = {}) {
         const li = buildNameLi(player.name);
         const badge = document.createElement('span');
         badge.className = 'badge';
         badge.textContent = LEVEL_LABELS[player.level];
         badge.dataset.level = player.level;
         li.append(badge);
+
+        if (showWait && player.waitingSince != null) {
+            const chip = document.createElement('span');
+            chip.className = 'wait';
+            chip.title = 'Time waiting';
+            const icon = document.createElement('span');
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = '⏱';
+            const time = document.createElement('span');
+            time.className = 'wait-time';
+            time.dataset.since = player.waitingSince;
+            chip.append(icon, time);
+            setWaitText(time);
+            li.append(chip);
+        }
         return li;
     }
 
     // Fills the Team A / Team B lists of a queue or court card
-    function fillTeams(root, match) {
+    function fillTeams(root, match, opts) {
         const fill = (selector, ids) =>
-            root.querySelector(selector).replaceChildren(...ids.map(playerById).filter(Boolean).map(buildPlayerLi));
+            root.querySelector(selector).replaceChildren(
+                ...ids.map(playerById).filter(Boolean).map(p => buildPlayerLi(p, opts))
+            );
         fill('.team-a .team-players', match.a);
         fill('.team-b .team-players', match.b);
     }
@@ -822,6 +865,17 @@
             badge.textContent = LEVEL_LABELS[player.level];
             badge.dataset.level = player.level;
 
+            // Wait chip: only while the session is running, and hidden while on a court
+            const waitEl = li.querySelector('.wait');
+            const inGame = !!busy.get(player.id);
+            const showWait = state.session.started && !inGame && player.waitingSince != null;
+            waitEl.hidden = !showWait;
+            if (showWait) {
+                const time = waitEl.querySelector('.wait-time');
+                time.dataset.since = player.waitingSince;
+                setWaitText(time);
+            }
+
             // Always set accessibility labels for edit/delete buttons
             li.querySelector('[data-action="edit"]').setAttribute('aria-label', `Edit ${player.name}`);
             li.querySelector('[data-action="delete"]').setAttribute('aria-label', `Delete ${player.name}`);
@@ -1046,6 +1100,7 @@
 
         // Start queueing -> then "Add players to queue"
         startBtn.addEventListener('click', async () => {
+
             if (!state.session.started) {
                 if (!state.players.length) return;
                 const ok = await confirmAction({
@@ -1058,6 +1113,7 @@
                 selected = [];
                 notice = null;
                 state.session.started = true;
+                state.players.forEach(p => { p.waitingSince = Date.now(); });
                 document.getElementById('add-players').open = false;   
                 commit();
                 return;
@@ -1079,7 +1135,8 @@
                 text: `Match ${match.no} added to the queue. Pick 4 more players for the next match, or open the Queue tab.`,
                 count: session.matches.length,
             };
-            commit(); // stays on the Players page
+
+            commit(); 
         });
 
         // Auto-generate balanced matchup with interactive preview editor
@@ -1193,8 +1250,8 @@
             const li = template.content.firstElementChild.cloneNode(true);
             li.dataset.id = match.id;
             li.querySelector('.match-title').textContent = `Match ${match.no ?? index + 1}`;
-            fillTeams(li, match);
-
+            fillTeams(li, match, { showWait: true });
+            
             const buttons = li.querySelector('.court-buttons');
             if (!state.courts.length) buttons.textContent = 'No courts yet. Add one on the Court page.';
             state.courts.forEach(court => {
@@ -1286,19 +1343,9 @@
         const emptyEl = document.getElementById('court-empty');
         const toast = document.getElementById('court-toast');
 
-        function formatElapsed(ms) {
-            const total = Math.max(0, Math.floor(ms / 1000));
-            const h = Math.floor(total / 3600);
-            const m = Math.floor((total % 3600) / 60);
-            const s = total % 60;
-            const pad = n => String(n).padStart(2, '0');
-            return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-        }
-
-        // Updates every running timer without re-rendering the cards
         function tick() {
             list.querySelectorAll('.elapsed[data-started]').forEach(el => {
-                el.textContent = formatElapsed(Date.now() - Number(el.dataset.started));
+                el.textContent = formatDuration(Date.now() - Number(el.dataset.started));
             });
         }
 
@@ -1362,14 +1409,15 @@
             recordResult(court, result);
         }
 
-        // Step 2: record the result, save it to history, and notify. result: 'a' | 'b' | 'draw'
         function recordResult(court, result) {
             const m = court.match;
+            const now = Date.now();
             const winners = result === 'a' ? m.a : result === 'b' ? m.b : [];
             [...m.a, ...m.b].forEach(id => {
                 const p = playerById(id);
                 if (!p) return;
                 p.games = (p.games ?? 0) + 1;
+                p.waitingSince = now; // wait time restarts after the game
                 if (result === 'draw') p.draws = (p.draws ?? 0) + 1;
                 else if (winners.includes(id)) p.wins = (p.wins ?? 0) + 1;
                 else p.losses = (p.losses ?? 0) + 1;
@@ -1860,4 +1908,8 @@
     initHistory();
     initLeaderboard();
     initPayments();
+    // One timer updates every wait chip (player cards + queue cards) without re-rendering
+    setInterval(() => {
+        document.querySelectorAll('.wait-time[data-since]').forEach(setWaitText);
+    }, 1000);
 })();
