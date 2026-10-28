@@ -891,6 +891,13 @@
             const availablePlayers = state.players.filter(p => !busy.has(p.id));
             autoBtn.hidden = !started;
             autoBtn.disabled = availablePlayers.length < 4;
+
+            const addPlayersEl = document.getElementById('add-players');
+            if (started && !render.collapsedOnce) {
+                addPlayersEl.open = false;
+                render.collapsedOnce = true;
+            }
+            if (!started) render.collapsedOnce = false;
         }
 
 
@@ -1051,6 +1058,7 @@
                 selected = [];
                 notice = null;
                 state.session.started = true;
+                document.getElementById('add-players').open = false;   
                 commit();
                 return;
             }
@@ -1144,6 +1152,7 @@
             state.fees.expenses = 0;
             selected = [];
             notice = null;
+            document.getElementById('add-players').open = true;
             commit();
         });
 
