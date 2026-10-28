@@ -649,9 +649,10 @@ main {
 
 .player-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px 6px;                 
   min-height: 34px;
 }
 
@@ -705,6 +706,40 @@ main {
 
 .player.busy> :not(.player-status) {
   opacity: 0.55;
+}
+
+/* ===== Wait time chip (player cards + queue cards) ===== */
+.wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums; /* digits keep a fixed width, so the text doesn't jiggle each second */
+}
+
+/* Waited a long time: reuses an existing token, so dark mode works automatically */
+.wait.long {
+  color: var(--intermediate);
+}
+
+/* On player cards, push the chip to the right edge of the row */
+.player-row .wait {
+  margin-left: auto;
+}
+
+/* Queue cards: name on its own line, then skill badge and wait time side by side */
+.match .team-players li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+}
+
+.match .team-players li .team-name {
+  flex-basis: 100%;
 }
 
 /* In game / in queue status on player cards */
