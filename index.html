@@ -11,56 +11,69 @@
 <body onload="if(!window.location.hash) window.location.hash='#q-sessions';">
 
     <main>
+        <!-- Q-Sessions (Includes Players, Queue, and Courts tabs) -->
         <section class="view" data-view="q-sessions">
             <div class="tabs" role="tablist" aria-label="Q-Session sections">
-                <button class="tab" role="tab" id="tab-players" aria-controls="panel-players" aria-selected="true">Players</button>
-                <button class="tab" role="tab" id="tab-queue" aria-controls="panel-queue" aria-selected="false" tabindex="-1">Queue</button>
-                <button class="tab" role="tab" id="tab-courts" aria-controls="panel-courts" aria-selected="false" tabindex="-1">Courts</button>
+                <button class="tab" role="tab" id="tab-players" aria-controls="panel-players"
+                    aria-selected="true">Players</button>
+                <button class="tab" role="tab" id="tab-queue" aria-controls="panel-queue" aria-selected="false"
+                    tabindex="-1">Queue</button>
+                <button class="tab" role="tab" id="tab-courts" aria-controls="panel-courts" aria-selected="false"
+                    tabindex="-1">Courts</button>
             </div>
 
             <!-- Players tab -->
             <div role="tabpanel" id="panel-players" aria-labelledby="tab-players">
-                <form class="player-form" id="player-form" novalidate>
-                    <div class="field">
-                        <label for="player-name">Player name</label>
-                        <input id="player-name" type="text" autocomplete="off" maxlength="40" placeholder="e.g. Maria Santos">
-                        <p class="form-error" id="player-error" role="alert" hidden></p>
+
+                <details class="add-players" id="add-players" open>
+                    <summary>Add players</summary>
+
+                    <div class="add-players-body">
+                        <form class="player-form" id="player-form" novalidate>
+                            <div class="field">
+                                <label for="player-name">Player name</label>
+                                <input id="player-name" type="text" autocomplete="off" maxlength="40"
+                                    placeholder="e.g. Maria Santos">
+                                <p class="form-error" id="player-error" role="alert" hidden></p>
+                            </div>
+
+                            <fieldset class="levels">
+                                <legend>Skill level</legend>
+                                <label class="level">
+                                    <input type="radio" name="level" value="beginner" checked>
+                                    <span>Beginner</span>
+                                </label>
+                                <label class="level">
+                                    <input type="radio" name="level" value="intermediate">
+                                    <span>Intermediate</span>
+                                </label>
+                                <label class="level">
+                                    <input type="radio" name="level" value="upper-intermediate">
+                                    <span>Upper intermediate</span>
+                                </label>
+                                <label class="level">
+                                    <input type="radio" name="level" value="advanced">
+                                    <span>Advanced</span>
+                                </label>
+                            </fieldset>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary" id="player-submit">Add player</button>
+                                <button type="button" class="btn" id="player-cancel" hidden>Cancel</button>
+                            </div>
+                        </form>
+
+                        <details class="bulk" id="bulk">
+                            <summary>Add many players at once</summary>
+                            <form class="bulk-form" id="bulk-form">
+                                <label for="bulk-text">Paste or type your list</label>
+                                <textarea id="bulk-text" rows="6"
+                                    placeholder="Maria Santos - advanced&#10;John (beginner), Ana, Ben&#10;Intermediate: Carlo, Diego"></textarea>
+                                <button type="submit" class="btn btn-primary">Add all players</button>
+                                <p class="bulk-result" id="bulk-result" role="status"></p>
+                            </form>
+                        </details>
                     </div>
-
-                    <fieldset class="levels">
-                        <legend>Skill level</legend>
-                        <label class="level">
-                            <input type="radio" name="level" value="beginner" checked>
-                            <span>Beginner</span>
-                        </label>
-                        <label class="level">
-                            <input type="radio" name="level" value="intermediate">
-                            <span>Intermediate</span>
-                        </label>
-                        <label class="level">
-                            <input type="radio" name="level" value="upper-intermediate">
-                            <span>Upper intermediate</span>
-                        </label>
-                        <label class="level">
-                            <input type="radio" name="level" value="advanced">
-                            <span>Advanced</span>
-                        </label>
-                    </fieldset>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="player-submit">Add player</button>
-                        <button type="button" class="btn" id="player-cancel" hidden>Cancel</button>
-                    </div>
-                </form>
-
-                <details class="bulk" id="bulk">
-                    <summary>Add many players at once</summary>
-                    <form class="bulk-form" id="bulk-form">
-                        <label for="bulk-text">Paste or type your list</label>
-                        <textarea id="bulk-text" rows="6" placeholder="Maria Santos - advanced&#10;John (beginner), Ana, Ben&#10;Intermediate: Carlo, Diego"></textarea>
-                        <button type="submit" class="btn btn-primary">Add all players</button>
-                        <p class="bulk-result" id="bulk-result" role="status"></p>
-                    </form>
                 </details>
 
                 <div class="list-header">
@@ -68,10 +81,12 @@
                     <button type="button" class="btn btn-sm btn-danger" id="player-clear" hidden>Delete all</button>
                     <button type="button" class="btn btn-sm btn-danger" id="session-end" hidden>End session</button>
                 </div>
+
                 <p class="empty" id="player-empty">No players yet. Add a name above to start the session.</p>
 
                 <div class="toolbar" id="player-toolbar" hidden>
-                    <input type="search" id="player-search" placeholder="Search players" aria-label="Search players" autocomplete="off">
+                    <input type="search" id="player-search" placeholder="Search players" aria-label="Search players"
+                        autocomplete="off">
                     <select id="filter-level" aria-label="Filter by skill level">
                         <option value="all">All levels</option>
                         <option value="beginner">Beginner</option>
@@ -86,19 +101,24 @@
                         <option value="in-game">In game</option>
                     </select>
                 </div>
-                <p class="empty" id="no-results" hidden>No players match your search.
+
+                <p class="empty" id="no-results" hidden>
+                    No players match your search.
                     <button type="button" class="link-btn" id="filter-reset">Clear filters</button>
                 </p>
 
                 <ul class="player-list" id="player-list"></ul>
 
                 <p class="select-hint" id="select-hint" role="status" hidden></p>
+
                 <div class="sticky-actions" id="sticky-actions">
                     <div class="start-row">
-                        <button type="button" class="btn btn-primary start-btn" id="start-queue" disabled>Start queueing</button>
-                        <button type="button" class="icon-btn auto-btn" id="auto-match-btn" title="Auto-generate matchup" aria-label="Auto-generate matchup" hidden>✨</button>
+                        <button type="button" class="btn btn-primary start-btn" id="start-queue" disabled>Start
+                            queueing</button>
+                        <button type="button" class="icon-btn auto-btn" id="auto-match-btn"
+                            title="Auto-generate matchup" aria-label="Auto-generate matchup" hidden>✨</button>
                     </div>
-                </div>        
+                </div>
             </div>
 
             <!-- Queue tab -->
@@ -107,7 +127,8 @@
                 <div class="list-header">
                     <h2 class="list-title">Matches in queue <span class="count" id="match-count">0</span></h2>
                 </div>
-                <p class="empty" id="queue-empty">No matches in the queue. On the Players tab, start queueing and pick 4 players.</p>
+                <p class="empty" id="queue-empty">No matches in the queue. On the Players tab, start queueing and pick 4
+                    players.</p>
                 <ul class="match-list" id="match-list"></ul>
             </div>
 
@@ -117,12 +138,15 @@
                     <h2 class="list-title" style="font-size: 1.4rem; margin: 0;">Court management</h2>
                     <button type="button" class="btn btn-primary btn-sm" id="court-add">+ Add court</button>
                 </div>
+
                 <p class="toast" id="court-toast" role="status" hidden></p>
                 <ul class="court-list" id="court-list"></ul>
                 <p class="empty" id="court-empty" hidden>No courts yet. Tap "+ Add court" to create one.</p>
+
                 <section class="history-card" aria-labelledby="history-title">
                     <div class="list-header">
-                        <h2 class="list-title" id="history-title">Match history <span class="count" id="history-count">0</span></h2>
+                        <h2 class="list-title" id="history-title">Match history <span class="count"
+                                id="history-count">0</span></h2>
                     </div>
                     <p class="empty" id="history-empty">No finished matches yet.</p>
                     <ul class="history-list" id="history-list"></ul>
@@ -133,11 +157,14 @@
         <!-- Rankings -->
         <section class="view" data-view="rankings" hidden>
             <h1>Rankings</h1>
+
             <section class="leaderboard-card" aria-labelledby="leaderboard-title">
                 <div class="list-header">
-                    <h2 class="list-title" id="leaderboard-title">Session leaderboard <span class="count" id="leaderboard-count">0</span></h2>
+                    <h2 class="list-title" id="leaderboard-title">Session leaderboard <span class="count"
+                            id="leaderboard-count">0</span></h2>
                 </div>
                 <p class="empty" id="leaderboard-empty">No players yet. Add players on the Q-Sessions page.</p>
+
                 <div class="table-wrap" id="leaderboard-wrap">
                     <table class="leaderboard">
                         <thead>
@@ -166,8 +193,8 @@
                 <label class="fee-field">
                     <span>Fee per player</span>
                     <span class="money-input">
-                <span aria-hidden="true">₱</span>
-                    <input id="fee-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+                        <span aria-hidden="true">₱</span>
+                        <input id="fee-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
                     </span>
                 </label>
             </section>
@@ -180,27 +207,34 @@
                         <span class="stat-label">Collected amount</span>
                         <strong class="stat-value" id="stat-collected">₱0</strong>
                     </div>
+
                     <div class="stat-card">
                         <span class="stat-label">Outstanding</span>
                         <strong class="stat-value" id="stat-outstanding">₱0</strong>
                     </div>
+
                     <div class="stat-card">
                         <label class="stat-label" for="expenses-input">Expenses</label>
                         <span class="money-input">
-                <span aria-hidden="true">₱</span>
-                        <input id="expenses-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+                            <span aria-hidden="true">₱</span>
+                            <input id="expenses-input" type="number" inputmode="decimal" min="0" step="any"
+                                placeholder="0">
                         </span>
                     </div>
+
                     <div class="stat-card">
                         <span class="stat-label">Net profit</span>
                         <strong class="stat-value" id="stat-net">₱0</strong>
                         <span class="stat-note">Collected − expenses</span>
                     </div>
                 </div>
+
                 <div class="discount-actions">
-                  <button type="button" class="btn btn-sm" id="discount-btn">🏷️ Add player discount</button>
+                    <button type="button" class="btn btn-sm" id="discount-btn">🏷️ Add player discount</button>
                 </div>
+
                 <p class="empty" id="payments-empty">No players yet. Add players on the Q-Sessions page.</p>
+
                 <div class="table-wrap" id="payments-wrap">
                     <table class="pay-table">
                         <thead>
@@ -219,12 +253,22 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Main navigation">
-        <a href="#q-sessions" class="nav-item"><span class="icon">📋</span><span>Main</span></a>
-        <a href="#rankings" class="nav-item"><span class="icon">🏆</span><span>Rankings</span></a>
-        <a href="#payments" class="nav-item"><span class="icon">💳</span><span>Payments</span></a>
+        <a href="#q-sessions" class="nav-item">
+            <span class="icon">📋</span>
+            <span>Main</span>
+        </a>
+        <a href="#rankings" class="nav-item">
+            <span class="icon">🏆</span>
+            <span>Rankings</span>
+        </a>
+        <a href="#payments" class="nav-item">
+            <span class="icon">💳</span>
+            <span>Payments</span>
+        </a>
     </nav>
 
     <!-- Templates & Prompt remain unchanged below... -->
+
     <!-- Player card -->
     <template id="player-item-template">
         <li class="player">
@@ -238,8 +282,8 @@
             </div>
             <span class="player-status" hidden></span>
             <div class="player-actions">
-                    <button type="button" class="icon-btn" data-action="edit" title="Edit">✏️</button>
-                    <button type="button" class="icon-btn" data-action="delete" title="Delete">🗑️</button>
+                <button type="button" class="icon-btn" data-action="edit" title="Edit">✏️</button>
+                <button type="button" class="icon-btn" data-action="delete" title="Delete">🗑️</button>
             </div>
         </li>
     </template>
@@ -249,10 +293,12 @@
         <li class="match">
             <div class="match-header">
                 <h3 class="match-title"></h3>
-                <button type="button" class="btn match-remove" data-action="remove" aria-label="Remove match from queue">
+                <button type="button" class="btn match-remove" data-action="remove"
+                    aria-label="Remove match from queue">
                     Remove
                 </button>
             </div>
+
             <div class="match-teams">
                 <div class="team team-a">
                     <span class="team-label">Team A</span>
@@ -264,6 +310,7 @@
                     <ul class="team-players"></ul>
                 </div>
             </div>
+
             <div class="court-assign">
                 <span class="court-label">Assign to court</span>
                 <div class="court-buttons"></div>
@@ -278,15 +325,19 @@
                 <strong class="court-title"></strong>
                 <div class="court-top-right">
                     <span class="court-status"></span>
-                    <button type="button" class="icon-btn" data-action="delete-court" title="Delete court" aria-label="Delete court">🗑️</button>
+                    <button type="button" class="icon-btn" data-action="delete-court" title="Delete court"
+                        aria-label="Delete court">🗑️</button>
                 </div>
             </div>
+
             <p class="court-empty">No match on this court.</p>
+
             <div class="court-details">
                 <div class="court-times">
                     <span>Started <strong class="started"></strong></span>
                     <span>Elapsed <strong class="elapsed"></strong></span>
                 </div>
+
                 <div class="match-teams">
                     <div class="team team-a">
                         <span class="team-label">Team A</span>
@@ -299,6 +350,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="court-foot">
                 <button type="button" class="btn btn-sm btn-danger" data-action="cancel">Cancel match</button>
                 <button type="button" class="btn btn-sm btn-primary" data-action="complete">Complete match</button>
@@ -313,6 +365,7 @@
                 <strong class="history-title"></strong>
                 <span class="history-time"></span>
             </div>
+
             <div class="match-teams">
                 <div class="team team-a">
                     <span class="team-label"></span>
@@ -324,13 +377,15 @@
                     <ul class="team-players"></ul>
                 </div>
             </div>
+
             <p class="history-draw" hidden>🤝 Draw</p>
         </li>
     </template>
 
     <!-- In-app prompt -->
     <div class="prompt-backdrop" id="prompt" hidden>
-        <div class="prompt" role="dialog" aria-modal="true" aria-labelledby="prompt-title" aria-describedby="prompt-text">
+        <div class="prompt" role="dialog" aria-modal="true" aria-labelledby="prompt-title"
+            aria-describedby="prompt-text">
             <div class="prompt-icon" id="prompt-icon" aria-hidden="true" hidden></div>
             <h2 id="prompt-title"></h2>
             <p class="prompt-text" id="prompt-text" hidden></p>
